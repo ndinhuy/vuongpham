@@ -1,0 +1,16 @@
+# Đăng nhập
+docker login
+
+# Build image (nếu chưa)
+docker-compose build gimji
+
+# Gán tag image theo tên Docker Hub
+docker tag gimji thanhlongqax/vuongpham:latest
+
+# Push lên Docker Hub
+docker push thanhlongqax/vuongpham:latest
+
+Trên production server: Kéo image về
+docker pull thanhlongqax/vuongpham:latest
+
+
