@@ -23,5 +23,3 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=Gimji;Username=postgres;Password=12345678 
-    volumes:
-      - E:\Classroom\C#\CNDOTNET_BACKEND\Gimji\Gimji:/app

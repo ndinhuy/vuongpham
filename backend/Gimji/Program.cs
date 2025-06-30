@@ -89,7 +89,7 @@ app.UseCors(optins => optins.WithOrigins("http://localhost:3000")
 
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(Path.Combine(env.ContentRootPath, "Images")),
+    FileProvider = new PhysicalFileProvider(Path.Combine(env.ContentRootPath, "images")),
     RequestPath = "/images"
 });
 

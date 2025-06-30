@@ -1,10 +1,14 @@
-﻿#See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
-# Stage 1: Sử dụng image SDK để build ứng dụng
+﻿# ========================
+# Stage 1: Runtime base
+# ========================
 FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
+# ========================
+# Stage 2: Build application
+# ========================
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
 COPY ["Gimji/Gimji.csproj", "Gimji/"]
@@ -13,14 +17,20 @@ COPY . .
 WORKDIR "/src/Gimji"
 RUN dotnet build "Gimji.csproj" -c Release -o /app/build
 
-# Set the working directory for the application
-WORKDIR /src/Gimji
-# Stage 3: Publish ứng dụng
+# ========================
+# Stage 3: Publish application
+# ========================
 FROM build AS publish
 RUN dotnet publish "Gimji.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# Stage 4: Chạy ứng dụng
+# ========================
+# Stage 4: Final image
+# ========================
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+# Tạo thư mục Images nếu chưa có
+RUN mkdir -p /app/images
+
 ENTRYPOINT ["dotnet", "Gimji.dll"]

@@ -51,11 +51,12 @@ namespace Gimji.Controllers
             var status = new ResDTO<ImageResponeDTO>();
             if (!ModelState.IsValid)
             {
-                status.Code = 0;
+                status.Code = 200;
                 status.Message = "Please pass the valid data";
                 return Ok(status);
             }
             var fileName = await productRepository.saveImages(image.ImageFile);
+            status.Code = 200;
             status.Message = "Upload ảnh thành công";
             status.Data = new ImageResponeDTO { fileName = fileName };
 
