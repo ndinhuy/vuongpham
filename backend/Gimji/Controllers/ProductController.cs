@@ -1,4 +1,5 @@
 ﻿using Gimji.DTO;
+using Gimji.DTO.Request.Product;
 using Gimji.Models;
 using Gimji.Repository.Implementations;
 using Microsoft.AspNetCore.Authorization;
@@ -22,12 +23,13 @@ namespace Gimji.Controllers
         // GET: api/<ProductController>
         [AllowAnonymous]
         [HttpGet]
-        public async Task<IActionResult> GetProductAll(string? search, double? from, double? to, string? sortBy, int? limit, int? page = 1)
+        public async Task<IActionResult> GetProductAll(string? search, decimal? from, decimal? to, string? sortBy, int? limit, int? page = 1)
         {
             return Ok(await productRepository.GetAllProduct(search , from , to , sortBy ,limit ,  page));
         }
 
         // GET api/<ProductController>/5
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProductById(string id)
         {
@@ -36,30 +38,32 @@ namespace Gimji.Controllers
         // GET api/<ProductController>/5
         [AllowAnonymous]
         [HttpGet("category/{categoryCode}")]
-        public async Task<IActionResult> GetProductByCategory(string categoryCode , string? search, double? from, double? to, string? sortBy, int? limit, int? page = 1)
+        public async Task<IActionResult> GetProductByCategory(string categoryCode , string? search, decimal? from, decimal? to, string? sortBy, int? limit, int? page = 1)
         {
             return Ok(await productRepository.GetProductByCategory(categoryCode , search, from, to, sortBy, limit, page));
         }
         // POST api/<ProductController>
-        [Authorize(Policy = "authenticated")]
         [HttpPost]
-        public async Task<IActionResult> CreateProduct([FromBody] Product product)
+        [Authorize(Roles = "ADMIN")]
+        public async Task<IActionResult> CreateProduct([FromBody] addProduct addProduct)
         {
-            await productRepository.AddProduct(product);
+            await productRepository.AddProduct(addProduct);
             return Ok();
         }
 
         // PUT api/<ProductController>
         //[Authorize(Policy = "authenticated")]
+        [Authorize(Roles = "ADMIN")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProduct(string id, [FromBody] ProductDTO productDTO)
         {
             await productRepository.UpdateProduct(id, productDTO);
             return Ok();
         }
-        [Authorize(Policy = "authenticated")]
+
         // DELETE api/<ProductController>/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> DeleteProduct(string id)
         {
             await productRepository.DeleteProduct(id);

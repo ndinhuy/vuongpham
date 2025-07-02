@@ -1,5 +1,6 @@
 ﻿using Gimji.Data;
 using Gimji.DTO;
+using Gimji.DTO.Request.Product;
 using Gimji.Models;
 using Gimji.Repository.Implementations;
 using Microsoft.AspNetCore.Mvc;
@@ -24,9 +25,26 @@ namespace Gimji.Services.Implementations
             this.environment = environment;
             this.httpContextAccessor = httpContextAccessor;
         }
-        public async Task AddProduct(Product product)
+        public async Task AddProduct(addProduct addProduct)
         {
-            await dbContext.products.AddAsync(product);
+            var category = await categoryRepository.GetCategoryById(addProduct.categoryId);
+
+
+            Product newProduct = new Product();
+
+            if (category != null)
+            {
+                newProduct.category = category;
+            }
+            newProduct.price = addProduct.price;
+            newProduct.name = addProduct.name;
+            newProduct.description = addProduct.description;
+            newProduct.nsn = addProduct.nsn;
+            newProduct.image1 = addProduct.image1;
+            newProduct.image2 = addProduct.image2;
+            newProduct.image3 = addProduct.image3;
+       
+            await dbContext.products.AddAsync(newProduct);
             await dbContext.SaveChangesAsync();
         }
 
@@ -41,7 +59,7 @@ namespace Gimji.Services.Implementations
         {
             return await dbContext.products.FindAsync(id) != null;
         }
-        public async Task<IEnumerable<Product>> GetProductByCategory(string categoryCode, string? search, double? from, double? to, string? sortBy, int? limit, int? page = 1)
+        public async Task<IEnumerable<Product>> GetProductByCategory(string categoryCode, string? search, decimal? from, decimal? to, string? sortBy, int? limit, int? page = 1)
         {
             var allProduct = dbContext.products.AsQueryable();
 
@@ -102,7 +120,7 @@ namespace Gimji.Services.Implementations
                 })
                 .ToListAsync();
         }
-        public async Task<IEnumerable<Product>> GetAllProduct(string? search , double? from , double? to , string? sortBy , int? limit ,int? page = 1)
+        public async Task<IEnumerable<Product>> GetAllProduct(string? search , decimal? from , decimal? to , string? sortBy , int? limit ,int? page = 1)
         {
             var allProduct = dbContext.products.AsQueryable();
 

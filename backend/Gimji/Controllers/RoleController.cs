@@ -11,6 +11,7 @@ namespace Gimji.Controllers
 {
     [Route("api/role")]
     [ApiController]
+    [Authorize(Roles = "ADMIN, USER")]
     //[Authorize(Policy ="admin")]
     public class RoleController : ControllerBase
     {
@@ -22,7 +23,7 @@ namespace Gimji.Controllers
 
         // ✅ Lấy danh sách Role với phân trang và tìm kiếm
         [HttpGet]
-        [Authorize(Roles = "Admin, Customer")]
+        [Authorize(Roles = "ADMIN, USER")]
         public async Task<ActionResult<ResDTO<IEnumerable<Role>>>> GetRoles(
             [FromQuery] int page = 1,
             [FromQuery] int limit = 10,
@@ -34,7 +35,7 @@ namespace Gimji.Controllers
 
         // GET api/<RoleController>/5
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin, Customer")]
+        [Authorize(Roles = "ADMIN, USER")]
         public async Task<ActionResult<ResDTO<Role>>> GetRoleById(string id)
         {
             var result = await roleRepository.GetRoleById(id);
@@ -44,7 +45,7 @@ namespace Gimji.Controllers
         // POST api/<RoleController>
         [HttpPost]
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<ActionResult<ResDTO<Role>>> CreateRole([FromBody] CreateRoleDTO roleDto)
         {
             var result = await roleRepository.CreateRole(roleDto.Name);
@@ -53,7 +54,7 @@ namespace Gimji.Controllers
 
         // PUT api/<RoleController>/5
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin ")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<ActionResult<ResDTO<Role>>> UpdateRole(string id, [FromBody] UpdateRoleDTO roleDto)
         {
             var result = await roleRepository.UpdateRole(id, roleDto.Name);
@@ -62,7 +63,7 @@ namespace Gimji.Controllers
 
         // DELETE api/<RoleController>/5
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin ")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<ActionResult<ResDTO<Role>>> DeleteRole(string id)
         {
             var result = await roleRepository.DeleteRole(id);

@@ -76,11 +76,10 @@ namespace Gimji.Migrations
                         .HasColumnType("numeric");
 
                     b.Property<string>("UserId")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("id");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("orders");
                 });
@@ -99,20 +98,18 @@ namespace Gimji.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
 
-                    b.Property<int>("ProductId")
-                        .HasColumnType("integer");
+                    b.Property<string>("ProductId")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
-
-                    b.Property<string>("productID")
-                        .HasColumnType("text");
 
                     b.HasKey("id");
 
                     b.HasIndex("Orderid");
 
-                    b.HasIndex("productID");
+                    b.HasIndex("ProductId");
 
                     b.ToTable("orderDetails");
                 });
@@ -150,8 +147,8 @@ namespace Gimji.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<double>("price")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("price")
+                        .HasColumnType("numeric");
 
                     b.HasKey("productID");
 
@@ -225,15 +222,6 @@ namespace Gimji.Migrations
                     b.ToTable("RoleUser");
                 });
 
-            modelBuilder.Entity("Gimji.Models.Order", b =>
-                {
-                    b.HasOne("Gimji.Models.User", "user")
-                        .WithMany()
-                        .HasForeignKey("UserId");
-
-                    b.Navigation("user");
-                });
-
             modelBuilder.Entity("Gimji.Models.OrderDetail", b =>
                 {
                     b.HasOne("Gimji.Models.Order", "Order")
@@ -242,7 +230,9 @@ namespace Gimji.Migrations
 
                     b.HasOne("Gimji.Models.Product", "Product")
                         .WithMany()
-                        .HasForeignKey("productID");
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Order");
 

@@ -1,4 +1,5 @@
-﻿using Gimji.Models;
+﻿using Gimji.DTO.Request.Category;
+using Gimji.Models;
 using System.Threading.Tasks;
 
 namespace Gimji.Repository.Implementations
@@ -9,8 +10,8 @@ namespace Gimji.Repository.Implementations
         Task<IEnumerable<CategoryCode>> GetAllCategory();
         Task<CategoryCode> GetCategoryById(string id);
         Task<CategoryCode> GetCategoryByName( string name);
-        Task AddCateogory(CategoryCode categoryCode);
-        Task UpdateCategory(int CodeValue,CategoryCode categoryCode);
-        Task DeleteCategory(int id);
+        Task AddCateogory(addCategoryCode categoryCode);
+        Task UpdateCategory(string CodeValue,updateCategoryCode updateCategoryCode);
+        Task DeleteCategory(string id);
     }
 }

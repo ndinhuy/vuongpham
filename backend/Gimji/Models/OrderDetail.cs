@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Gimji.Models
 {
@@ -7,7 +8,8 @@ namespace Gimji.Models
         [Key]
         public string id { get; set; } = Guid.NewGuid().ToString();
         public int OrderId { get; set; }
-        public int ProductId { get; set; }
+        [ForeignKey("Product")]
+        public string ProductId { get; set; }
         public int Quantity { get; set; }
         public decimal Price { get; set; }
         public Order Order { get; set; }

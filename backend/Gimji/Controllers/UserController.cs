@@ -5,11 +5,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Gimji.Repository.Interface;
 using Gimji.DTO.Request.User;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Gimji.Controllers
 {
     [Route("api/users")]
     [ApiController]
+
     public class UserController : Controller
     {
         private readonly IUserRepository _userService;
@@ -19,7 +21,7 @@ namespace Gimji.Controllers
         }
         // 📌 Lấy danh sách user (có tìm kiếm & phân trang)
         [HttpGet]
-        [Authorize(Roles = "Admin, Manager")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<ActionResult<ResDTO<IEnumerable<User>>>> GetUsers(int page = 1, int limit = 10, string? keyword = null)
         {
             var result = await _userService.GetUsers(page, limit, keyword);
@@ -28,7 +30,7 @@ namespace Gimji.Controllers
 
         // 📌 Lấy thông tin chi tiết user theo ID
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin, Manager")]
+        [Authorize(Roles = "ADMIN , USER")]
         public async Task<ActionResult<ResDTO<User>>> GetUser(string id)
         {
             var result = await _userService.GetUser(id);
@@ -37,7 +39,7 @@ namespace Gimji.Controllers
 
         // 📌 Thêm user mới
         [HttpPost]
-        [Authorize(Roles = "Admin ,Manager")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<ActionResult<ResDTO<string>>> AddUser([FromBody] CreateUserDTO userDto)
         {
             var result = await _userService.AddUser(userDto);
@@ -46,7 +48,7 @@ namespace Gimji.Controllers
 
         // 📌 Cập nhật thông tin user
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin, Manager")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<ActionResult<ResDTO<string>>> UpdateUser(string id, [FromBody] UserDTO userDto)
         {
             userDto.Id = id;
@@ -56,7 +58,7 @@ namespace Gimji.Controllers
 
         // 📌 Xóa user
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin ,Manager")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<ActionResult<ResDTO<string>>> DeleteUser(string id)
         {
             var result = await _userService.DeleteUser(id);
@@ -69,6 +71,17 @@ namespace Gimji.Controllers
         public async Task<ActionResult<ResDTO<string>>> Login([FromBody] LoginDTO loginDto)
         {
             var result = await _userService.Login(loginDto.email, loginDto.password);
+            var token = result.Data?.ToString();
+            if (result.Code == 200 && !string.IsNullOrEmpty(token))
+            {
+                HttpContext.Response.Cookies.Append("access_token", token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    //Secure = true,  
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTimeOffset.UtcNow.AddHours(1)
+                });
+            }
             return StatusCode(result.Code, result);
         }
 

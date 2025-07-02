@@ -26,6 +26,25 @@ namespace Gimji.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "orders",
+                columns: table => new
+                {
+                    id = table.Column<string>(type: "text", nullable: false),
+                    OrderDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    TotalPrice = table.Column<decimal>(type: "numeric", nullable: false),
+                    ShippingAddress = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    Notes = table.Column<string>(type: "text", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    PaymentMethod = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_orders", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "role",
                 columns: table => new
                 {
@@ -63,7 +82,7 @@ namespace Gimji.Migrations
                     image1 = table.Column<string>(type: "text", nullable: false),
                     image2 = table.Column<string>(type: "text", nullable: false),
                     image3 = table.Column<string>(type: "text", nullable: false),
-                    price = table.Column<double>(type: "double precision", nullable: false),
+                    price = table.Column<decimal>(type: "numeric", nullable: false),
                     description = table.Column<string>(type: "text", nullable: false),
                     nsn = table.Column<string>(type: "text", nullable: false),
                     categoryCodeValue = table.Column<string>(type: "text", nullable: true)
@@ -75,30 +94,6 @@ namespace Gimji.Migrations
                         name: "FK_product_category_categoryCodeValue",
                         column: x => x.categoryCodeValue,
                         principalTable: "category",
-                        principalColumn: "id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "orders",
-                columns: table => new
-                {
-                    id = table.Column<string>(type: "text", nullable: false),
-                    OrderDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    TotalPrice = table.Column<decimal>(type: "numeric", nullable: false),
-                    ShippingAddress = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    Notes = table.Column<string>(type: "text", nullable: false),
-                    UserId = table.Column<string>(type: "text", nullable: true),
-                    PaymentMethod = table.Column<string>(type: "text", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_orders", x => x.id);
-                    table.ForeignKey(
-                        name: "FK_orders_users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "users",
                         principalColumn: "id");
                 });
 
@@ -132,11 +127,10 @@ namespace Gimji.Migrations
                 {
                     id = table.Column<string>(type: "text", nullable: false),
                     OrderId = table.Column<int>(type: "integer", nullable: false),
-                    ProductId = table.Column<int>(type: "integer", nullable: false),
+                    ProductId = table.Column<string>(type: "text", nullable: false),
                     Quantity = table.Column<int>(type: "integer", nullable: false),
                     Price = table.Column<decimal>(type: "numeric", nullable: false),
-                    Orderid = table.Column<string>(type: "text", nullable: true),
-                    productID = table.Column<string>(type: "text", nullable: true)
+                    Orderid = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -147,10 +141,11 @@ namespace Gimji.Migrations
                         principalTable: "orders",
                         principalColumn: "id");
                     table.ForeignKey(
-                        name: "FK_orderDetails_product_productID",
-                        column: x => x.productID,
+                        name: "FK_orderDetails_product_ProductId",
+                        column: x => x.ProductId,
                         principalTable: "product",
-                        principalColumn: "productID");
+                        principalColumn: "productID",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -159,14 +154,9 @@ namespace Gimji.Migrations
                 column: "Orderid");
 
             migrationBuilder.CreateIndex(
-                name: "IX_orderDetails_productID",
+                name: "IX_orderDetails_ProductId",
                 table: "orderDetails",
-                column: "productID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_orders_UserId",
-                table: "orders",
-                column: "UserId");
+                column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_categoryCodeValue",

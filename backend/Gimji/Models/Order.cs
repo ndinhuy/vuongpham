@@ -17,8 +17,10 @@ namespace Gimji.Models
         public string Notes { get; set; }
 
         [ForeignKey("UserId")]
-        [ValidateNever]
-        public User user { get; set; }
+        public string UserId { get; set; }
+
+        //[ValidateNever]
+        //public User User { get; set; }
 
         public List<OrderDetail> Items { get; set; }
 

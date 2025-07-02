@@ -47,6 +47,8 @@ builder.Services.AddScoped<ImageRepository , ImageService>();
 builder.Services.AddSingleton<JwtUtils>();
 builder.Services.AddSingleton<BcryptUtils>();
 
+builder.Services.AddScoped<IDbSeeder, DbSeeder>();
+
 builder.Services.AddHttpContextAccessor();
 // add authorization 
 // add Cross-Origin Resource Sharing
@@ -56,8 +58,8 @@ builder.Services.AddCors();
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("authenticated", policy => policy.RequireAuthenticatedUser());
-    options.AddPolicy("user", policy => policy.RequireRole("USER"));
-    options.AddPolicy("admin", policy => policy.RequireRole("ADMIN"));
+    options.AddPolicy("USER", policy => policy.RequireRole("USER"));
+    options.AddPolicy("ADMIN", policy => policy.RequireRole("ADMIN"));
 });
 
 //
@@ -72,6 +74,18 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<MyPostgresDbContext>();
+    db.Database.Migrate(); // ?? T? ??ng update database n?u ch?a có
+}
+
+// G?I SEED ? ?ÂY ?
+using (var scope = app.Services.CreateScope())
+{
+    var seeder = scope.ServiceProvider.GetRequiredService<IDbSeeder>();
+    await seeder.SeedAsync();
+}
 
 var env = builder.Environment;
 // Configure the HTTP request pipeline.

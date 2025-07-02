@@ -1,4 +1,5 @@
 ﻿using Gimji.Data;
+using Gimji.DTO.Request.Category;
 using Gimji.Models;
 using Gimji.Repository.Implementations;
 using Microsoft.EntityFrameworkCore;
@@ -14,15 +15,19 @@ namespace Gimji.Services.Implementations
             this.dbContext = dbContext;
 
         }
-        public async Task AddCateogory(CategoryCode categoryCode)
+        public async Task AddCateogory(addCategoryCode categoryCode)
         {
-            await dbContext.categoryCodes.AddAsync(categoryCode);
+            CategoryCode newCategory = new CategoryCode();
+            newCategory.Name = categoryCode.Name;
+            newCategory.Description = categoryCode.Description;
+            newCategory.Image = categoryCode.Image;
+            await dbContext.categoryCodes.AddAsync(newCategory);
 
             await dbContext.SaveChangesAsync();
            
         }
 
-        public async Task DeleteCategory(int id)
+        public async Task DeleteCategory(string id)
         {
             dbContext.categoryCodes.Remove(await dbContext.categoryCodes.FindAsync(id));
             await dbContext.SaveChangesAsync();
@@ -48,14 +53,15 @@ namespace Gimji.Services.Implementations
             return await dbContext.categoryCodes.SingleOrDefaultAsync(item => item.Name == name);
         }
 
-        public async Task UpdateCategory(int CodeValue,CategoryCode categoryCode)
+        public async Task UpdateCategory(string CodeValue,updateCategoryCode updateCategoryCode)
         {
             var category_Update = await dbContext.categoryCodes.FindAsync(CodeValue);
+
             if(category_Update != null)
             {
-                category_Update.Name = categoryCode.Name;
-                category_Update.Image = categoryCode.Image;
-                category_Update.Description = categoryCode.Description;
+                category_Update.Name = updateCategoryCode.Name;
+                category_Update.Image = updateCategoryCode.Image;
+                category_Update.Description = updateCategoryCode.Description;
 
                 await dbContext.SaveChangesAsync(); // Lưu các thay đổi vào cơ sở dữ liệu
             }

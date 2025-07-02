@@ -14,3 +14,42 @@ Trên production server: Kéo image về
 docker pull thanhlongqax/vuongpham:latest
 
 
+
+version: '3.4' 
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    container_name: db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345678
+      POSTGRES_DB: Gimji
+    ports:
+      - "5432:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+
+  gimji:
+    image: thanhlongqax/vuongpham:latest 
+    container_name: vuongpham-app 
+    ports:
+      - "5000:80"
+    depends_on:
+      - db
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=Gimji;Username=postgres;Password=12345678
+
+volumes:
+  dbdata:
+ 
+Cài Docker Compose
+sudo apt update
+sudo apt install docker-compose-plugin
+
+ Chạy lại lệnh đúng pull ve :
+docker compose -f docker-compose.prod.yml up -d
+
+
