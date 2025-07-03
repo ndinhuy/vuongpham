@@ -61,7 +61,16 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("USER", policy => policy.RequireRole("USER"));
     options.AddPolicy("ADMIN", policy => policy.RequireRole("ADMIN"));
 });
-
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("http://localhost:3000") // Origin FE
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials(); // ? Cho phép g?i credentials (cookies, auth)
+    });
+});
 //
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -97,10 +106,9 @@ if (app.Environment.IsDevelopment())
 }
 
 
-app.UseCors(optins => optins.WithOrigins("http://localhost:3000")
-.AllowAnyMethod()
-.AllowAnyHeader());
 
+
+app.UseCors();
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(Path.Combine(env.ContentRootPath, "images")),

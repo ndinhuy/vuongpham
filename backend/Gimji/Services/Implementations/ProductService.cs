@@ -29,13 +29,12 @@ namespace Gimji.Services.Implementations
         {
             var category = await categoryRepository.GetCategoryById(addProduct.categoryId);
 
+            if (category == null)
+            {
+                throw new Exception("Category not found");
+            }
 
             Product newProduct = new Product();
-
-            if (category != null)
-            {
-                newProduct.category = category;
-            }
             newProduct.price = addProduct.price;
             newProduct.name = addProduct.name;
             newProduct.description = addProduct.description;
@@ -43,7 +42,7 @@ namespace Gimji.Services.Implementations
             newProduct.image1 = addProduct.image1;
             newProduct.image2 = addProduct.image2;
             newProduct.image3 = addProduct.image3;
-       
+            newProduct.category = category;
             await dbContext.products.AddAsync(newProduct);
             await dbContext.SaveChangesAsync();
         }
