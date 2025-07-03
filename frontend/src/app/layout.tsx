@@ -6,6 +6,8 @@ import clsx from "clsx";
 import "@/styles/globals.css";
 import "swiper/css";
 import { Toaster } from "@/components/ui/sonner";
+import AuthProvider from "@/providers/AuthProvider";
+import CartProvider from "@/providers/CartProvider";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -35,8 +37,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={clsx(poppins.variable, lexend.variable, "font-lexend")}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <Toaster richColors />
-          {children}
+          <AuthProvider>
+            <CartProvider>
+              <Toaster richColors />
+              {children}
+            </CartProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

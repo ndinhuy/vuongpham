@@ -1,4 +1,5 @@
-import React from "react";
+"use client";
+import React, { useContext } from "react";
 import { Button } from "../ui/button";
 import {
   NavigationMenu,
@@ -9,8 +10,16 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import Link from "next/link";
+import { AuthContext } from "@/providers/AuthProvider";
+import { ShoppingCart, Trash } from "lucide-react";
+import { CartContext } from "@/providers/CartProvider";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import Image from "next/image";
 
 const Header = () => {
+  const auth = useContext(AuthContext);
+  const cart = useContext(CartContext);
+
   return (
     <div className="border-b sticky top-0 left-0 z-10 bg-background shadow">
       <div className="container flex justify-between items-center py-4">
@@ -57,12 +66,56 @@ const Header = () => {
           </NavigationMenu>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant={"outline"}>Đăng ký</Button>
-          <Link href={"/auth/sign-in"}>
-            <Button>Đăng nhập</Button>
-          </Link>
-        </div>
+        {!auth?.user ? (
+          <div className="flex items-center gap-2">
+            <Button variant={"outline"}>Đăng ký</Button>
+            <Link href={"/auth/sign-in"}>
+              <Button>Đăng nhập</Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <p>{auth.user}</p>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size={"icon"} variant={"ghost"} className="relative">
+                  {(cart?.products?.length ?? 0) > 0 && (
+                    <div className="text-white bg-red-500 size-4 rounded-full absolute top-0 right-0 flex items-center justify-center">
+                      <p className="text-[10px]">{cart?.products?.length ?? 0}</p>
+                    </div>
+                  )}
+                  <ShoppingCart />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" hidden={cart?.products.length === 0}>
+                <div className="flex flex-col gap-4">
+                  {cart?.products.map((product) => (
+                    <div key={product.productID} className="flex items-center justify-between">
+                      <div className="flex gap-4 items-center">
+                        <div className="relative size-10 overflow-hidden rounded-md">
+                          <Image src={product.image1} alt="" sizes="auto" fill className="object-cover" />
+                        </div>
+                        <div className="text-sm">
+                          <p>{product.name}</p>
+                          <p className="text-muted-foreground">{product.price}</p>
+                        </div>
+                      </div>
+
+                      <Button
+                        variant={"ghost"}
+                        onClick={() => {
+                          cart?.setProducts((prev) => prev.filter((p) => p.productID !== product.productID));
+                        }}
+                      >
+                        <Trash />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
       </div>
     </div>
   );

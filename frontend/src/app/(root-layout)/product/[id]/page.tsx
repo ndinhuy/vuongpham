@@ -18,11 +18,16 @@ import { Swiper as SwiperType } from "swiper/types";
 import Image from "next/image";
 import clsx from "clsx";
 import { Button } from "@/components/ui/button";
+import { CartContext } from "@/providers/CartProvider";
+import { toast } from "sonner";
+import { AuthContext } from "@/providers/AuthProvider";
 
 const Product = () => {
   const params = useParams<{ id: string }>();
   const productId = params.id;
   const router = useRouter();
+  const cart = React.useContext(CartContext);
+  const auth = React.useContext(AuthContext);
 
   if (!productId) {
     return router.push("/not-found");
@@ -95,7 +100,25 @@ const Product = () => {
             <div className="bg-card p-4 rounded-2xl shadow-xl flex flex-col justify-between h-fit min-h-96">
               <p className="capitalize font-semibold text-xl">{product.name}</p>
 
-              <Button>Mua ngay</Button>
+              <Button
+                onClick={() => {
+                  if (!auth?.user) {
+                    router.push("/auth/sign-in");
+                    return;
+                  }
+
+                  cart?.setProducts((prev) => {
+                    const isExists = prev.some((item) => item.productID === product.productID);
+                    if (isExists) {
+                      return prev;
+                    }
+                    toast.success("Thêm sản phẩm vào giỏ hàng thành công");
+                    return [...prev, product];
+                  });
+                }}
+              >
+                Mua ngay
+              </Button>
             </div>
           </div>
         </div>
