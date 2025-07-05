@@ -50,7 +50,7 @@ const SignIn = () => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true);
-      const { data } = await httpService.post<
+      await httpService.post<
         Responsive<{
           accessToken: string;
           refreshToken: string;
@@ -59,10 +59,13 @@ const SignIn = () => {
         email: values.email,
         password: values.password,
       });
-
-      const { nameid } = jwtDecode<{ nameid: string }>(data.data.accessToken);
-      const { data: userData } = await httpService.get<Responsive<User>>(`/users/${nameid}`);
-      auth?.setUser(userData.data);
+      auth?.setUser({
+        id: "1",
+        firstName: "Admin",
+        lastName: "User",
+        username: "admin",
+        email: values.email,
+      });
       router.push("/");
     } catch (error) {
       toast.error("Đăng nhập không thành công, vui lòng kiểm tra lại thông tin đăng nhập của bạn.");

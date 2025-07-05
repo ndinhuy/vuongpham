@@ -32,10 +32,11 @@ import { NavMain } from "./nav-main";
 import { NavDocuments } from "./nav-documents";
 import { NavUser } from "./nav-user";
 import { NavSecondary } from "./nav-secondary";
+import Link from "next/link";
 
 const data = {
   user: {
-    name: "shadcn",
+    name: "admin",
     email: "m@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
@@ -157,10 +158,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
-              <a href="#">
+              <Link href="/admin">
                 <IconInnerShadowTop className="!size-5" />
                 <span className="text-base font-semibold">Admin</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
