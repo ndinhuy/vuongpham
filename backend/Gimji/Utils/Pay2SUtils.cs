@@ -20,7 +20,7 @@ namespace Gimji.Utils
 
         public async Task<Dictionary<string, object>> CreatePaymentAsync(Pay2SRequestDTO input)
         {
-            string endpoint = "https://payment.pay2s.vn/v1/gateway/api/create";
+            string endpoint = _options.BaseUrl;
             string orderId = input.OrderId ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
             string requestId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
             string formattedOrderInfo = _options.OrderDesc.Replace("{{orderid}}", orderId);
@@ -68,7 +68,7 @@ namespace Gimji.Utils
 
             return JsonConvert.DeserializeObject<Dictionary<string, object>>(result);
         }
-
+        // Hàm tạo chữ ký HMAC SHA256
         private string CreateSignature(string rawData, string secretKey)
         {
             var key = Encoding.UTF8.GetBytes(secretKey);
@@ -78,30 +78,12 @@ namespace Gimji.Utils
                 return BitConverter.ToString(hash).Replace("-", "").ToLower();
             }
         }
-        public string CreateRequestUrl(string baseUrl, string vnp_HashSecret)
+        public bool ValidateSignature(string rspraw, string inputHash, string secretKey)
         {
-            StringBuilder data = new StringBuilder();
-            foreach (KeyValuePair<string, string> kv in _requestData)
-            {
-                if (!String.IsNullOrEmpty(kv.Value))
-                {
-                    data.Append(WebUtility.UrlEncode(kv.Key) + "=" + WebUtility.UrlEncode(kv.Value) + "&");
-                }
-            }
-            string queryString = data.ToString();
-
-            baseUrl += "?" + queryString;
-            String signData = queryString;
-            if (signData.Length > 0)
-            {
-
-                signData = signData.Remove(data.Length - 1, 1);
-            }
-            string vnp_SecureHash = HmacSHA512(vnp_HashSecret, signData);
-            baseUrl += "vnp_SecureHash=" + vnp_SecureHash;
-
-            return baseUrl;
+            string myChecksum = PayLib.HmacSHA512(secretKey, rspraw);
+            return myChecksum.Equals(inputHash, StringComparison.InvariantCultureIgnoreCase);
         }
+
     }
 
 }

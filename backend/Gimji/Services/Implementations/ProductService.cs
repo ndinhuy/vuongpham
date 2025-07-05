@@ -1,6 +1,6 @@
 ﻿using Gimji.Data;
-using Gimji.DTO;
 using Gimji.DTO.Request.Product;
+using Gimji.DTO.Respone.Product;
 using Gimji.Models;
 using Gimji.Repository.Implementations;
 using Microsoft.AspNetCore.Mvc;

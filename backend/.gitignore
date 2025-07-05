@@ -20,3 +20,5 @@ global.json
 *.cache
 *.csproj.user
 *.sln.docstates
+
+.ide

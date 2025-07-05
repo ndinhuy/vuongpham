@@ -1,8 +1,10 @@
 using Gimji.Config;
 using Gimji.Data;
+using Gimji.Repository;
 using Gimji.Repository.Implementations;
 using Gimji.Repository.Interface;
 using Gimji.Services.Implementations;
+using Gimji.Services.Interface;
 using Gimji.Utils;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -21,10 +23,28 @@ builder.Services.AddDbContext<MyPostgresDbContext>(options =>
 // c?u hình VN PAY
 builder.Services.Configure<VNPaySettings>(builder.Configuration.GetSection("VNPay"));
 
+// cau hinh pay2s
+builder.Services.Configure<Pay2SConfig>(builder.Configuration.GetSection("Pay2SConfig"));
+builder.Services.AddHttpClient<Pay2SUtils>();
+
 // add jwt
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // T? ??ng l?y access_token t? cookie n?u không có trong header
+                var accessToken = context.Request.Cookies["access_token"];
+                if (!string.IsNullOrEmpty(accessToken) && string.IsNullOrEmpty(context.Token))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -43,7 +63,8 @@ builder.Services.AddScoped<ProductRepository , ProductService>();
 builder.Services.AddScoped<IRoleRepository , RoleService>();
 builder.Services.AddScoped<IUserRepository, UserServices>();
 builder.Services.AddScoped<ImageRepository , ImageService>();
-
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddSingleton<JwtUtils>();
 builder.Services.AddSingleton<BcryptUtils>();
 
@@ -61,6 +82,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("USER", policy => policy.RequireRole("USER"));
     options.AddPolicy("ADMIN", policy => policy.RequireRole("ADMIN"));
 });
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>

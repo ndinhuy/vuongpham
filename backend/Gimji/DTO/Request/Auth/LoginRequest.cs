@@ -1,4 +1,4 @@
-﻿namespace Gimji.DTO
+﻿namespace Gimji.DTO.Request.Auth
 {
     public class LoginRequest
     {

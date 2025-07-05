@@ -1,4 +1,4 @@
-﻿namespace Gimji.DTO.Respone
+﻿namespace Gimji.DTO.Respone.Role
 {
     public class RoleDTORespone
     {

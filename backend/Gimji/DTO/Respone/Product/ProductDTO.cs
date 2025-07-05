@@ -1,6 +1,6 @@
 ﻿using Gimji.Models;
 
-namespace Gimji.DTO
+namespace Gimji.DTO.Respone.Product
 {
     public class ProductDTO
     {

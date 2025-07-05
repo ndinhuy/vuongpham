@@ -8,6 +8,11 @@ namespace Gimji.Repository.Implementations
     {
         //private readonly dbContext dbContext;
         private readonly MyPostgresDbContext dbContext;
+        public OrderRepository(MyPostgresDbContext dbContext)
+        {
+            this.dbContext = dbContext;
+        }
+
         public async Task<Order> CreateOrderAsync(Order order)
         {
             await dbContext.orders.AddAsync(order);

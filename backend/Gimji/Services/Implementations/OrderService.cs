@@ -31,6 +31,19 @@ namespace Gimji.Services.Implementations
                     Data = null
                 };
             }
+            // ✅ Nếu KHÔNG có userId => Phải có thông tin khách
+            if (string.IsNullOrWhiteSpace(orderDto.userId))
+            {
+                if (string.IsNullOrWhiteSpace(orderDto.GuestName) || string.IsNullOrWhiteSpace(orderDto.GuestPhone))
+                {
+                    return new ResDTO<Order>
+                    {
+                        Code = 400,
+                        Message = "Khách không đăng nhập phải nhập họ tên và số điện thoại.",
+                        Data = null
+                    };
+                }
+            }
 
             decimal totalPrice = 0;
             var orderItems = new List<OrderDetail>();
@@ -63,8 +76,14 @@ namespace Gimji.Services.Implementations
                 Items = orderItems,
                 TotalPrice = totalPrice,
                 Status = OrderStatus.Pending,
-                CreatedAt = DateTime.UtcNow
-                // Có thể thêm: UserId = ExtractUserIdFromToken(token)
+                CreatedAt = DateTime.UtcNow,
+                UserId = orderDto.userId,
+                ShippingAddress = orderDto.ShippingAddress ?? "",
+                Notes = orderDto.Notes,
+                PaymentMethod = orderDto.PaymentMethod,
+                GuestName = orderDto.GuestName,
+                GuestPhone = orderDto.GuestPhone,
+                GuestEmail = orderDto.GuestEmail
             };
 
             await _orderRepository.CreateOrderAsync(order);
@@ -79,6 +98,27 @@ namespace Gimji.Services.Implementations
 
 
 
+        public async Task<ResDTO<Order>> GetOrderByIdAsync(string orderId)
+        {
+            var order = await _orderRepository.GetOrderByIdAsync(orderId);
+
+            if (order == null)
+            {
+                return new ResDTO<Order>
+                {
+                    Code = 404,
+                    Message = "Đơn hàng không tồn tại",
+                    Data = null
+                };
+            }
+
+            return new ResDTO<Order>
+            {
+                Code = 200,
+                Message = "Lấy đơn hàng thành công",
+                Data = order
+            };
+        }
 
 
 
@@ -121,20 +161,23 @@ namespace Gimji.Services.Implementations
         //}
 
 
-        //public async Task<OrderResponseDTO?> UpdateOrderStatusAsync(string orderId, string status)
-        //{
-        //    var order = await _orderRepository.GetOrderByIdAsync(orderId);
-        //    if (order == null) return null;
+        public async Task<OrderResponseDTO?> UpdateOrderStatusAsync(string orderId, string status)
+        {
+            var order = await _orderRepository.GetOrderByIdAsync(orderId);
+            if (order == null) return null;
 
-        //    if (Enum.TryParse<OrderStatus>(status, out var newStatus))
-        //    {
-        //        order.Status = newStatus;
-        //        await _orderRepository.UpdateOrderAsync(order);
-        //        return MapToOrderResponseDTO(order);
-        //    }
+            if (Enum.TryParse<OrderStatus>(status, out var newStatus))
+            {
+                order.Status = newStatus;
+                await _orderRepository.UpdateOrderAsync(order);
+                //return MapToOrderResponseDTO(order);
+            }
 
-        //    return null;
-        //}
+            return null;
+        }
+        public Task<ResDTO<Order>> UpdateOrderAsync(Order order) {
+            return null;
+        }
         //public async Task<ResDTO<OrderResponseDTO>> GetOrderByIdAsync(string orderId)
         //{
         //    var order = await _orderRepository.GetOrderByIdAsync(orderId);

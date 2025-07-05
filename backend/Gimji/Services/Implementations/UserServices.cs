@@ -6,6 +6,9 @@ using Gimji.Data;
 using Gimji.Utils;
 using Microsoft.EntityFrameworkCore;
 using Gimji.Repository.Interface;
+using Gimji.DTO.Respone.User;
+using Microsoft.AspNetCore.Identity;
+using Gimji.DTO.Request.Auth;
 
 namespace Gimji.Services.Implementations
 {
@@ -21,7 +24,7 @@ namespace Gimji.Services.Implementations
             this.bcryptUtils = bcryptUtils;
         }
 
-        public async Task<ResDTO<IEnumerable<User>>> GetUsers(int page = 1, int limit = 10, string? keyword = null)
+        public async Task<ResDTO<IEnumerable<UserResponeDTO>>> GetUsers(int page = 1, int limit = 10, string? keyword = null)
         {
             if (page < 1) page = 1;
             if (limit < 1) limit = 10;
@@ -41,11 +44,20 @@ namespace Gimji.Services.Implementations
             var users = await query
                 .OrderBy(u => u.FirstName) // Sắp xếp theo tên (có thể đổi thành `Id`)
                 .Skip((page - 1) * limit) // Bỏ qua (page-1) * limit dòng đầu
-                .Take(limit) // Giới hạn số user trong 1 trang
+                .Take(limit)
+                .Select(u => new UserResponeDTO
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    Username = u.Username,
+                    DateOfBirth = u.DateOfBirth,
+                })// Giới hạn số user trong 1 trang
                 .ToListAsync();
-
+            
             // 🚀 Trả về kết quả
-            return new ResDTO<IEnumerable<User>>
+            return new ResDTO<IEnumerable<UserResponeDTO>>
             {
                 Code = (int)HttpStatusCode.OK,
                 Message = "Lấy danh sách thành công",
@@ -53,25 +65,35 @@ namespace Gimji.Services.Implementations
             };
         }
 
-        public async Task<ResDTO<User>> GetUser(string id)
+        public async Task<ResDTO<UserResponeDTO>> GetUser(string id)
         {
             var user = await dbContext.users.FindAsync(id);
 
             if (user == null)
             {
-                return new ResDTO<User>
+                return new ResDTO<UserResponeDTO>
                 {
                     Code = (int)HttpStatusCode.NotFound,
                     Message = "Không tìm thấy người dùng",
                     Data = null
                 };
             }
-
-            return new ResDTO<User>
+            var userResponeDTO = new UserResponeDTO
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Username= user.Username,
+                DateOfBirth = user.DateOfBirth,
+                
+                // map các trường cần thiết
+            };
+            return new ResDTO<UserResponeDTO>
             {
                 Code = (int)HttpStatusCode.OK,
                 Message = "Lấy thông tin người dùng thành công",
-                Data = user
+                Data = userResponeDTO
             };
         }
 
@@ -240,9 +262,29 @@ namespace Gimji.Services.Implementations
             var roles = user.Roles.Select(r => r.Name).ToList();
             var roleString = string.Join(",", roles); // Ghép thành chuỗi
 
-            // Sinh token
-            var token = jwtUtils.GenerateToken(user.Id, roleString);
+      
 
+            // Sinh access token (hạn ngắn )
+            var accessToken = jwtUtils.GenerateToken(user.Id, roleString , 10080);
+
+            // Sinh refresh token (hạn dài, ví dụ 1 tháng)
+            var refreshToken = Guid.NewGuid().ToString();
+            var refreshTokenExpiry = DateTime.UtcNow.AddMonths(1); // hoặc AddDays(30)
+
+            // Xóa token cũ (nếu có)
+            var existingToken = await dbContext.UserRefreshTokens.FirstOrDefaultAsync(r => r.UserId == user.Id);
+            if (existingToken != null)
+                dbContext.UserRefreshTokens.Remove(existingToken);
+
+            // Lưu refresh token mới
+            var userRefreshToken = new UserRefreshToken
+            {
+                UserId = user.Id,
+                RefreshToken = refreshToken,
+                ExpiryDate = refreshTokenExpiry
+            };
+            dbContext.UserRefreshTokens.Add(userRefreshToken);
+            await dbContext.SaveChangesAsync();
             return new ResDTO<object>
             {
                 Code = (int)HttpStatusCode.OK,
@@ -250,9 +292,92 @@ namespace Gimji.Services.Implementations
                 Data = new
                 {
                     Type = "Bearer",
-                    Token = token
+                    AccessToken = accessToken,
+                    RefreshToken = refreshToken
+                }
+            };
+
+        }
+        public async Task<ResDTO<object>> RefreshTokenAsync(string refreshToken)
+        {
+            var tokenEntity = await dbContext.UserRefreshTokens
+                .Include(r => r.User)
+                .ThenInclude(u => u.Roles)
+                .FirstOrDefaultAsync(r => r.RefreshToken == refreshToken);
+
+            if (tokenEntity == null || tokenEntity.ExpiryDate < DateTime.UtcNow)
+            {
+                return new ResDTO<object>
+                {
+                    Code = (int)HttpStatusCode.Unauthorized,
+                    Message = "Refresh token không hợp lệ hoặc đã hết hạn",
+                    Data = null
+                };
+            }
+
+            var user = tokenEntity.User;
+            var roleString = string.Join(",", user.Roles.Select(r => r.Name));
+
+            // Nếu bạn muốn access token vẫn là 1 tháng:
+            var newAccessToken = jwtUtils.GenerateToken(user.Id, roleString, 43200);
+
+            return new ResDTO<object>
+            {
+                Code = (int)HttpStatusCode.OK,
+                Message = "Làm mới token thành công",
+                Data = new
+                {
+                    AccessToken = newAccessToken
                 }
             };
         }
+        public async Task<ResDTO<string>> ChangePassword(ChangePassworđTO changePassworđTO)
+        {
+            if (changePassworđTO.newPassword != changePassworđTO.confirmNewPassword)
+            {
+                return new ResDTO<string>
+                {
+                    Code = 400,
+                    Message = "Xác nhận mật khẩu mới không khớp",
+                    Data = null
+                };
+            }
+
+            var user = await dbContext.users.FindAsync(changePassworđTO.userId);
+            if (user == null)
+            {
+                return new ResDTO<string>
+                {
+                    Code = 404,
+                    Message = "Không tìm thấy người dùng",
+                    Data = null
+                };
+            }
+
+            // 3. Kiểm tra mật khẩu cũ bằng Bcrypt
+            if (!BcryptUtils.VerifyPassword(changePassworđTO.oldPassword, user.Password))
+            {
+                return new ResDTO<string>
+                {
+                    Code = 401,
+                    Message = "Mật khẩu cũ không chính xác",
+                    Data = null
+                };
+            }
+
+            // 4. Hash và cập nhật mật khẩu mới
+            user.Password = BcryptUtils.HashPassword(changePassworđTO.newPassword);
+            dbContext.users.Update(user);
+            await dbContext.SaveChangesAsync();
+
+            return new ResDTO<string>
+            {
+                Code = 200,
+                Message = "Đổi mật khẩu thành công",
+                Data = null
+            };
+        }
+
+
     }
 }

@@ -1,4 +1,4 @@
-﻿using Gimji.Models;
+﻿    using Gimji.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 
@@ -16,6 +16,8 @@ namespace Gimji.Data
 
         public DbSet<Order> orders { get; set; }
         public DbSet<OrderDetail> orderDetails { get; set; }
+        public DbSet<UserRefreshToken> UserRefreshTokens { get; set; }
+
 
         public MyPostgresDbContext(DbContextOptions<MyPostgresDbContext> options):base(options)
         {

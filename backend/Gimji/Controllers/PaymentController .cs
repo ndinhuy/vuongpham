@@ -1,6 +1,11 @@
 ﻿using Gimji.Config;
+using Gimji.DTO.Request.Payment;
+using Gimji.enums;
 using Gimji.Repository;
+using Gimji.Repository.Implementations;
+using Gimji.Services.Interface;
 using Gimji.Utils;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -8,116 +13,75 @@ using System.Web;
 
 namespace Gimji.Controllers
 {
+    [Route("api/payments")]
+    [ApiController]
     public class PaymentController : Controller
     {
-        private readonly VNPaySettings _vnPaySettings;
-        private readonly ILogger<PaymentController> _logger;
-        private readonly IOrderRepository _orderRepository;
-        public PaymentController(IOptions<VNPaySettings> vnPayOptions, ILogger<PaymentController> logger, IOrderRepository orderRepository)
+        private readonly Pay2SUtils _pay2SUtils;
+        private readonly IOrderService _orderService;
+        public PaymentController(Pay2SUtils pay2SUtils , IOrderService orderService)
         {
-            _vnPaySettings = vnPayOptions.Value;
-            _logger = logger;
-            _orderRepository = orderRepository;
+            _pay2SUtils = pay2SUtils;
+            _orderService = orderService;
+
         }
-        // GET: PaymentController
-        public IActionResult CreatePaymentUrl(decimal amount, int orderId)
+        // POST: PaymentController
+  
+        [Authorize]
+        [HttpPost("create")]
+        public async Task<IActionResult> CreatePayment([FromBody] Pay2SRequestDTO request)
         {
-            _logger.LogInformation("CreatePaymentUrl called with amount={Amount}, orderId={OrderId}", amount, orderId);
-            var vnp_TxnRef = orderId.ToString();
-
-            var vnp_OrderInfo = $"Thanh toan don hang #{orderId}";
-
-            var tick = DateTime.Now.Ticks.ToString();
-
-            var vnp_Amount = ((long)(amount * 100)).ToString(); // CHỈ CHỨA SỐ NGUYÊN
-            var vnp_CreateDate = DateTime.Now.ToString("yyyyMMddHHmmss");
-            var vnp_ExpireDate = DateTime.Now.AddMinutes(15).ToString("yyyyMMddHHmmss");
-
-            var vnp_ReturnUrl = _vnPaySettings.ReturnUrl;
-
-
-
-            var vnp_Url = _vnPaySettings.BaseUrl;
-            var vnp_TmnCode = _vnPaySettings.TmnCode;
-            var vnp_HashSecret = _vnPaySettings.HashSecret;
-            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-            if (ipAddress == "::1")
+            if (string.IsNullOrWhiteSpace(request.Amount) || string.IsNullOrWhiteSpace(request.BankAccounts))
             {
-                ipAddress = "127.0.0.1";
+                return BadRequest("Amount và BankAccounts là bắt buộc.");
             }
 
-            PayLib pay = new PayLib();
-            pay.AddRequestData("vnp_Version", "2.1.0"); //Phiên bản api mà merchant kết nối. Phiên bản hiện tại là 2.1.0
-            pay.AddRequestData("vnp_Command", "pay"); //Mã API sử dụng, mã cho giao dịch thanh toán là 'pay'
-            pay.AddRequestData("vnp_TmnCode", vnp_TmnCode); //Mã website của merchant trên hệ thống của VNPAY (khi đăng ký tài khoản sẽ có trong mail VNPAY gửi về)
-            pay.AddRequestData("vnp_Amount", vnp_Amount); //số tiền cần thanh toán, công thức: số tiền * 100 - ví dụ 10.000 (mười nghìn đồng) --> 1000000
-            pay.AddRequestData("vnp_BankCode", "NCB"); //Mã Ngân hàng thanh toán (tham khảo: https://sandbox.vnpayment.vn/apis/danh-sach-ngan-hang/), có thể để trống, người dùng có thể chọn trên cổng thanh toán VNPAY
-            pay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss")); //ngày thanh toán theo định dạng yyyyMMddHHmmss
-            pay.AddRequestData("vnp_CurrCode", "VND"); //Đơn vị tiền tệ sử dụng thanh toán. Hiện tại chỉ hỗ trợ VND
-            pay.AddRequestData("vnp_IpAddr", ipAddress ?? "127.0.0.1"); //Địa chỉ IP của khách hàng thực hiện giao dịch
-            pay.AddRequestData("vnp_Locale", "vn"); //Ngôn ngữ giao diện hiển thị - Tiếng Việt (vn), Tiếng Anh (en)
-            pay.AddRequestData("vnp_OrderInfo", vnp_OrderInfo); //Thông tin mô tả nội dung thanh toán
-            pay.AddRequestData("vnp_OrderType", "other"); //topup: Nạp tiền điện thoại - billpayment: Thanh toán hóa đơn - fashion: Thời trang - other: Thanh toán trực tuyến
-            pay.AddRequestData("vnp_ReturnUrl", vnp_ReturnUrl); //URL thông báo kết quả giao dịch khi Khách hàng kết thúc thanh toán
-            pay.AddRequestData("vnp_TxnRef", vnp_TxnRef); //mã hóa đơn
-
-
-            string paymentUrl = pay.CreateRequestUrl(vnp_Url, vnp_HashSecret);
-            return Redirect(paymentUrl);
-        }
-        [HttpGet]
-        public async Task<IActionResult> PaymentConfirm()
-        {
-            if (Request.QueryString.HasValue)
+            try
             {
-                //lấy toàn bộ dữ liệu trả về
-                var queryString = Request.QueryString.Value;
-                var json = HttpUtility.ParseQueryString(queryString);
-
-                int orderId = (int)Convert.ToInt64(json["vnp_TxnRef"]);
-                //mã hóa đơn
-                string orderInfor = json["vnp_OrderInfo"].ToString(); //Thông tin giao dịch
-                long vnpayTranId = Convert.ToInt64(json["vnp_TransactionNo"]); //mã giao dịch tại hệ thống VNPAY
-                string vnp_ResponseCode = json["vnp_ResponseCode"].ToString(); //response code: 00 - thành công, khác 00 - xem thêm https://sandbox.vnpayment.vn/apis/docs/bang-ma-loi/
-                string vnp_SecureHash = json["vnp_SecureHash"].ToString(); //hash của dữ liệu trả về
-                var pos = Request.QueryString.Value.IndexOf("&vnp_SecureHash");
-
-                //return Ok(Request.QueryString.Value.Substring(1, pos-1) + "\n" + vnp_SecureHash + "\n"+ PayLib.HmacSHA512(hashSecret, Request.QueryString.Value.Substring(1, pos-1)));
-                bool checkSignature = ValidateSignature(Request.QueryString.Value.Substring(1, pos - 1), vnp_SecureHash, _vnPaySettings.HashSecret); //check chữ ký đúng hay không?
-                if (checkSignature && _vnPaySettings.TmnCode == json["vnp_TmnCode"].ToString())
-                {
-                    if (vnp_ResponseCode == "00")
-                    {
-                        //Thanh toán thành công
-                        // Thanh toán thành công → chuyển hướng đến OrderCompleted
-                        //await _orderRepository.UpdateStatusAsync(orderId, "Completed");
-
-                        TempData["SuccessMessage"] = "Thanh toán VNPay thành công!";
-                        return RedirectToAction("OrderCompleted", "Order", new { id = orderId });
-                    }
-                    else
-                    {
-                        //Thanh toán không thành công. Mã lỗi: vnp_ResponseCode
-                        // Thanh toán thất bại
-                        TempData["ErrorMessage"] = "Thanh toán VNPay thất bại. Vui lòng thử lại!";
-                        return RedirectToAction("Checkout", "Order");
-                    }
-                }
-                else
-                {
-                    //phản hồi không khớp với chữ ký
-                    return Redirect("đường dẫn nếu phản hồi ko hợp lệ");
-                }
+                var result = await _pay2SUtils.CreatePaymentAsync(request);
+                return Ok(result);
             }
-            //phản hồi không hợp lệ
-            return Redirect("đường dẫn nếu phản hồi ko hợp lệ");
+            catch (HttpRequestException ex)
+            {
+                return StatusCode(503, $"Lỗi kết nối với Pay2S: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi nội bộ: {ex.Message}");
+            }
+        }
+        //[HttpGet("redirect")]
+        //public async Task<IActionResult> RedirectAfterPayment([FromQuery] string orderId, [FromQuery] string status)
+        //{
+        //    // Validate orderId
+        //    var order = await _orderService.GetOrderByIdAsync(orderId);
+        //    if (order == null)
+        //    {
+        //        return NotFound("Đơn hàng không tồn tại.");
+        //    }
 
-        }
-        public bool ValidateSignature(string rspraw, string inputHash, string secretKey)
-        {
-            string myChecksum = PayLib.HmacSHA512(secretKey, rspraw);
-            return myChecksum.Equals(inputHash, StringComparison.InvariantCultureIgnoreCase);
-        }
+        //    // Cập nhật trạng thái đơn hàng nếu thanh toán thành công
+        //    if (status == "success")
+        //    {
+        //        order.Status = OrderStatus.InProgress;
+        //        await _orderService.UpdateOrderAsync(order);
+        //    }
+
+        //    // Trả về HTML thông báo thành công
+        //    var html = $@"
+        //    <html>
+        //        <head><title>Thanh toán</title></head>
+        //        <body style='font-family:sans-serif; text-align:center; padding-top: 50px'>
+        //            <h1>✅ Thanh toán {(status == "success" ? "thành công" : "thất bại")}!</h1>
+        //            <p>Đơn hàng: <strong>{order.id}</strong></p>
+        //            <a href='https://your-frontend-site.com/order/{order.id}'>Xem chi tiết đơn hàng</a>
+        //        </body>
+        //    </html>
+        //";
+
+        //    return Content(html, "text/html");
+        //}
+
 
     }
 }

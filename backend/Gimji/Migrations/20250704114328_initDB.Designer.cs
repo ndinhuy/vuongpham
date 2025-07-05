@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gimji.Migrations
 {
     [DbContext(typeof(MyPostgresDbContext))]
-    [Migration("20250702134509_initDB")]
+    [Migration("20250704114328_initDB")]
     partial class initDB
     {
         /// <inheritdoc />
@@ -56,12 +56,21 @@ namespace Gimji.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("GuestEmail")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("GuestName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("GuestPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("Notes")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<DateTime>("OrderDate")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PaymentMethod")
                         .IsRequired()
@@ -79,7 +88,6 @@ namespace Gimji.Migrations
                         .HasColumnType("numeric");
 
                     b.Property<string>("UserId")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("id");
@@ -210,6 +218,29 @@ namespace Gimji.Migrations
                     b.ToTable("users");
                 });
 
+            modelBuilder.Entity("Gimji.Models.UserRefreshToken", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExpiryDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RefreshToken")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserRefreshTokens");
+                });
+
             modelBuilder.Entity("RoleUser", b =>
                 {
                     b.Property<string>("RolesId")
@@ -249,6 +280,17 @@ namespace Gimji.Migrations
                         .HasForeignKey("categoryCodeValue");
 
                     b.Navigation("category");
+                });
+
+            modelBuilder.Entity("Gimji.Models.UserRefreshToken", b =>
+                {
+                    b.HasOne("Gimji.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("RoleUser", b =>

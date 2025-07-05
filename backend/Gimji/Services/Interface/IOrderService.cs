@@ -12,5 +12,8 @@ namespace Gimji.Services.Interface
         //Task<OrderResponseDTO> UpdateOrderStatusAsync(string orderId, string status);
 
         Task<ResDTO<Order>> CreateOrder(CreateOrderDTO orderDto);
+        Task<ResDTO<Order>> GetOrderByIdAsync(string orderId);
+        Task<ResDTO<Order>> UpdateOrderAsync(Order order);
+        Task<OrderResponseDTO?> UpdateOrderStatusAsync(string orderId, string status);
     }
 }

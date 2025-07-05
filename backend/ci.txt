@@ -5,7 +5,7 @@ docker login
 docker-compose build gimji
 
 # Gán tag image theo tên Docker Hub
-docker tag gimji thanhlongqax/vuongpham:latest
+docker tag thanhlongqax/vuongpham thanhlongqax/vuongpham:latest
 
 # Push lên Docker Hub
 docker push thanhlongqax/vuongpham:latest

@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Gimji.Repository.Interface;
 using Gimji.DTO.Request.User;
 using Microsoft.IdentityModel.Tokens;
+using Gimji.Utils;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gimji.Controllers
 {
@@ -65,25 +67,52 @@ namespace Gimji.Controllers
             return StatusCode(result.Code, result);
         }
 
-        // 📌 Đăng nhập bằng Email & Password
         [HttpPost("login")]
         [AllowAnonymous]
-        public async Task<ActionResult<ResDTO<string>>> Login([FromBody] LoginDTO loginDto)
+        public async Task<ActionResult<ResDTO<object>>> Login([FromBody] LoginDTO loginDto)
         {
             var result = await _userService.Login(loginDto.email, loginDto.password);
-            var token = result.Data?.ToString();
-            if (result.Code == 200 && !string.IsNullOrEmpty(token))
+
+            if (result.Code == 200 && result.Data is not null)
             {
-                HttpContext.Response.Cookies.Append("access_token", token, new CookieOptions
+                // Ép kiểu dynamic data từ ResDTO
+                var tokenData = result.Data as dynamic;
+
+                var accessToken = tokenData?.AccessToken as string;
+                var refreshToken = tokenData?.RefreshToken as string;
+
+                if (!string.IsNullOrEmpty(accessToken) && !string.IsNullOrEmpty(refreshToken))
                 {
-                    HttpOnly = true,
-                    //Secure = true,  
-                    SameSite = SameSiteMode.Strict,
-                    Expires = DateTimeOffset.UtcNow.AddHours(1)
-                });
+                    // 🟢 Lưu Access Token vào cookie
+                    HttpContext.Response.Cookies.Append("access_token", accessToken, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        //Secure = true, // bật nếu dùng HTTPS
+                        SameSite = SameSiteMode.Strict,
+                        Expires = DateTimeOffset.UtcNow.AddDays(7)
+                    });
+
+                    // 🟢 Lưu Refresh Token vào cookie
+                    HttpContext.Response.Cookies.Append("refresh_token", refreshToken, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        //Secure = true,
+                        SameSite = SameSiteMode.Strict,
+                        Expires = DateTimeOffset.UtcNow.AddMonths(1) /// ví dụ: refresh token sống 7 ngày
+                    });
+                }
             }
-            return StatusCode(result.Code, result);
+
+            return StatusCode(result.Code);
         }
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            var result = await _userService.RefreshTokenAsync(request.RefreshToken);
+            return StatusCode(result.Code, result); // trả về ResDTO chuẩn
+        }
+
 
     }
 }

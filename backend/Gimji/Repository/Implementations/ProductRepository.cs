@@ -1,5 +1,5 @@
-﻿using Gimji.DTO;
-using Gimji.DTO.Request.Product;
+﻿using Gimji.DTO.Request.Product;
+using Gimji.DTO.Respone.Product;
 using Gimji.Models;
 
 namespace Gimji.Repository.Implementations
