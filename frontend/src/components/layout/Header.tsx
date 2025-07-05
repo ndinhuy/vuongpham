@@ -75,7 +75,7 @@ const Header = () => {
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <p>{auth.user}</p>
+            <p>{auth.user.username}</p>
             <Popover>
               <PopoverTrigger asChild>
                 <Button size={"icon"} variant={"ghost"} className="relative">

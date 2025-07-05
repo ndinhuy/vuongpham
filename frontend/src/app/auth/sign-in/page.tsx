@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation";
 import { useContext, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Responsive } from "@/types";
-import { AuthContext } from "@/providers/AuthProvider";
+import { AuthContext, User } from "@/providers/AuthProvider";
 
 const formSchema = z.object({
   email: z
@@ -52,15 +52,17 @@ const SignIn = () => {
       setIsLoading(true);
       const { data } = await httpService.post<
         Responsive<{
-          token: string;
+          accessToken: string;
+          refreshToken: string;
         }>
       >("/users/login", {
         email: values.email,
         password: values.password,
       });
 
-      const { nameid } = jwtDecode<{ nameid: string }>(data.data.token);
-      auth?.setUser(nameid);
+      const { nameid } = jwtDecode<{ nameid: string }>(data.data.accessToken);
+      const { data: userData } = await httpService.get<Responsive<User>>(`/users/${nameid}`);
+      auth?.setUser(userData.data);
       router.push("/");
     } catch (error) {
       toast.error("Đăng nhập không thành công, vui lòng kiểm tra lại thông tin đăng nhập của bạn.");
