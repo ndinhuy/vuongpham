@@ -9,7 +9,7 @@ import _omitBy from "lodash/omitBy";
 
 const axiosConfig = {
   withCredentials: true,
-  baseURL: process.env.NEXT_PUBLIC_BASE_URL,
+  baseURL: process.env.NEXT_PUBLIC_BASE_API_URL,
   timeout: 10000,
 };
 

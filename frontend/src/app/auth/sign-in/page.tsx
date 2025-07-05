@@ -1,6 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { jwtDecode } from "jwt-decode";
 import { Input } from "@/components/ui/input";
 
 import { z } from "zod";
@@ -11,8 +12,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { httpService } from "@/services/http.service";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { Responsive } from "@/types";
+import { AuthContext } from "@/providers/AuthProvider";
 
 const formSchema = z.object({
   email: z
@@ -34,31 +37,30 @@ const formSchema = z.object({
 const SignIn = () => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const auth = useContext(AuthContext);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: "admin@example.com",
+      password: "admin@vuongpham",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true);
-      const { data } = await httpService.post<{
-        code: number;
-        message: string;
-        data: {
-          type: string;
+      const { data } = await httpService.post<
+        Responsive<{
           token: string;
-        };
-      }>("/users/login", {
+        }>
+      >("/users/login", {
         email: values.email,
         password: values.password,
       });
 
-      const token = data?.data?.token as string;
+      const { nameid } = jwtDecode<{ nameid: string }>(data.data.token);
+      auth?.setUser(nameid);
       router.push("/");
     } catch (error) {
       toast.error("Đăng nhập không thành công, vui lòng kiểm tra lại thông tin đăng nhập của bạn.");
