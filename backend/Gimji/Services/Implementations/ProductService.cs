@@ -1,245 +1,206 @@
 ﻿using Gimji.Data;
+using Gimji.DTO;
 using Gimji.DTO.Request.Product;
+using Gimji.DTO.Respone.Image;
 using Gimji.DTO.Respone.Product;
 using Gimji.Models;
 using Gimji.Repository.Implementations;
-using Microsoft.AspNetCore.Mvc;
+using Gimji.Repository.Interface;
+using Gimji.Services.Interface;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using System;
-using System.Linq;
-using System.Net;
 
 namespace Gimji.Services.Implementations
 {
-    public class ProductService : ProductRepository
+    public class ProductService : IProductService
     {
-        private MyPostgresDbContext dbContext;
-        private CategoryRepository categoryRepository;
-        private IWebHostEnvironment environment;
+
+        private readonly ICategoryRepository categoryRepository;
+
         private readonly IHttpContextAccessor httpContextAccessor;
-        public ProductService(MyPostgresDbContext dbContext , CategoryRepository categoryRepository , IWebHostEnvironment environment , IHttpContextAccessor httpContextAccessor)
+        private readonly IProductRepository productRepository;
+
+        public ProductService(
+                              ICategoryRepository categoryRepository,
+
+                              IHttpContextAccessor httpContextAccessor,
+                              IProductRepository productRepository)
         {
-            this.dbContext = dbContext;
+
             this.categoryRepository = categoryRepository;
-            this.environment = environment;
+
             this.httpContextAccessor = httpContextAccessor;
+            this.productRepository = productRepository;
         }
-        public async Task AddProduct(addProduct addProduct)
+
+        public async Task<ResDTO<string>> AddProduct(addProduct addProduct)
         {
             var category = await categoryRepository.GetCategoryById(addProduct.categoryId);
-
             if (category == null)
             {
-                throw new Exception("Category not found");
+                return new ResDTO<string> { Code = 404, Message = "Không tìm thấy danh mục", Data = null };
             }
 
-            Product newProduct = new Product();
-            newProduct.price = addProduct.price;
-            newProduct.name = addProduct.name;
-            newProduct.description = addProduct.description;
-            newProduct.nsn = addProduct.nsn;
-            newProduct.image1 = addProduct.image1;
-            newProduct.image2 = addProduct.image2;
-            newProduct.image3 = addProduct.image3;
-            newProduct.category = category;
-            await dbContext.products.AddAsync(newProduct);
-            await dbContext.SaveChangesAsync();
+            var product = new Product
+            {
+                name = addProduct.name,
+                price = addProduct.price,
+                description = addProduct.description,
+                nsn = addProduct.nsn,
+                Slug = GenerateSlug(addProduct.name),
+                image1 = addProduct.image1,
+                image2 = addProduct.image2,
+                image3 = addProduct.image3,
+                category = category
+            };
+
+            await productRepository.AddProduct(product);
+            return new ResDTO<string> { Code = 200, Message = "Thêm sản phẩm thành công", Data = product.productID };
         }
 
-        public async Task DeleteProduct(string id)
+        public async Task<ResDTO<string>> DeleteProduct(string id)
         {
-            var product = await dbContext.products.FindAsync(id);
-            dbContext.products.Remove(product);
-            await dbContext.SaveChangesAsync();
+            var exist = await productRepository.DoesItemExist(id);
+            if (!exist)
+                return new ResDTO<string> { Code = 404, Message = "Không tìm thấy sản phẩm", Data = null };
+
+            await productRepository.DeleteProduct(id);
+            return new ResDTO<string> { Code = 200, Message = "Xoá sản phẩm thành công", Data = id };
         }
 
-        public async Task<bool> DoesItemExist(string id)
+        public async Task<ResDTO<Product>> GetProductById(string id)
         {
-            return await dbContext.products.FindAsync(id) != null;
-        }
-        public async Task<IEnumerable<Product>> GetProductByCategory(string categoryCode, string? search, decimal? from, decimal? to, string? sortBy, int? limit, int? page = 1)
-        {
-            var allProduct = dbContext.products.AsQueryable();
+            var product = await productRepository.GetProductById(id);
+            if (product == null)
+                return new ResDTO<Product> { Code = 404, Message = "Không tìm thấy sản phẩm", Data = null };
 
-            #region Filtering
-            if (!string.IsNullOrEmpty(search))
-            {
-                allProduct = allProduct.Where(item => item.name.Contains(search));
-            }
-            if (from.HasValue)
-            {
-                allProduct = allProduct.Where(item => item.price >= from);
-            }
-            if (to.HasValue)
-            {
-                allProduct = allProduct.Where(item => item.price <= to);
-            }
-
-            if (categoryCode != null)
-            {
-                allProduct = allProduct.Where(item => item.category.CodeValue == categoryCode);
-            }
-
-            #endregion
-
-            #region Sorting
-            allProduct = allProduct.OrderBy(item => item.name);
-            if (!string.IsNullOrEmpty(sortBy))
-            {
-                switch (sortBy)
-                {
-                    case "name_desc": allProduct = allProduct.OrderByDescending(item => item.name); break;
-                    case "price_desc": allProduct = allProduct.OrderByDescending(item => item.price); break;
-                    case "price_asc": allProduct = allProduct.OrderBy(item => item.price); break;
-                }
-            }
-            #endregion
-
-            #region Pagging
-            if (page.HasValue && page > 0 && limit.HasValue && limit > 0)
-            {
-                allProduct = allProduct.Skip((page.Value - 1) * limit.Value).Take(limit.Value);
-            }
-            #endregion
-
-            return await allProduct
-                .Select(x => new Product()
-                {
-                    productID = x.productID,
-                    name = x.name,
-                    image1 = x.image1,
-                    image2 = x.image2,
-                    image3 = x.image3,
-                    price = x.price,
-                    description = x.description,
-                    nsn = x.nsn,
-                    category = x.category,
-                    ImageSrc = string.Format("{0}://{1}{2}/images/{3}", httpContextAccessor.HttpContext.Request.Scheme, httpContextAccessor.HttpContext.Request.Host, httpContextAccessor.HttpContext.Request.PathBase, x.image1)
-                })
-                .ToListAsync();
-        }
-        public async Task<IEnumerable<Product>> GetAllProduct(string? search , decimal? from , decimal? to , string? sortBy , int? limit ,int? page = 1)
-        {
-            var allProduct = dbContext.products.AsQueryable();
-
-            #region Filtering
-            if (!string.IsNullOrEmpty(search))
-            {
-                allProduct = allProduct.Where(item => item.name.Contains(search));
-            }
-            if (from.HasValue) 
-            {
-                allProduct = allProduct.Where(item => item.price >= from);
-            }
-            if (to.HasValue)
-            {
-                allProduct = allProduct.Where(item => item.price <= to);
-            }
-            #endregion
-
-            #region Sorting
-            allProduct = allProduct.OrderBy(item => item.name);
-            if (!string.IsNullOrEmpty(sortBy))
-            {
-                switch(sortBy)
-                {
-                    case "name_desc": allProduct = allProduct.OrderByDescending(item => item.name); break;
-                    case "price_desc": allProduct = allProduct.OrderByDescending(item => item.price); break;
-                    case "price_asc": allProduct = allProduct.OrderBy(item => item.price); break;
-                }
-            }
-            #endregion
-
-            #region Pagging
-            if (page.HasValue && page > 0 && limit.HasValue && limit > 0)
-            {
-                allProduct = allProduct.Skip((page.Value - 1) * limit.Value).Take(limit.Value);
-            }
-            #endregion
-
-            return await allProduct
-                .Select(x => new Product()
-                {
-                    productID = x.productID,
-                    name = x.name,
-                    image1 = x.image1,
-                    image2 = x.image2,
-                    image3 = x.image3,
-                    price = x.price,
-                    description = x.description,
-                    nsn = x.nsn,
-                    category = x.category,
-                    ImageSrc = string.Format("{0}://{1}{2}/images/{3}" ,httpContextAccessor.HttpContext.Request.Scheme , httpContextAccessor.HttpContext.Request.Host , httpContextAccessor.HttpContext.Request.PathBase , x.image1 )
-                })
-                .ToListAsync();
+            product.ImageSrc = GetImageUrl(product.image1);
+            return new ResDTO<Product> { Code = 200, Message = "Lấy sản phẩm thành công", Data = product };
         }
 
-        public async Task<Product> GetProductById(string id)
+        public async Task<ResDTO<Product>> GetProductByName(string name)
         {
-            Product product = await dbContext.products
-                .Include(p => p.category)
-                .FirstOrDefaultAsync(item => item.productID == id);
-            product.ImageSrc = string.Format("{0}://{1}{2}/images/{3}", httpContextAccessor.HttpContext.Request.Scheme, httpContextAccessor.HttpContext.Request.Host, httpContextAccessor.HttpContext.Request.PathBase, product.image1);
-            return product;
+            var product = await productRepository.GetProductByName(name);
+            if (product == null)
+                return new ResDTO<Product> { Code = 404, Message = "Không tìm thấy sản phẩm theo tên", Data = null };
+
+            product.ImageSrc = GetImageUrl(product.image1);
+            return new ResDTO<Product> { Code = 200, Message = "Lấy sản phẩm thành công", Data = product };
         }
 
-        public async Task<Product> GetProductByName(string name)
+        public async Task<ResDTO<IEnumerable<Product>>> GetAllProduct(string? search, decimal? from, decimal? to, string? sortBy, int? limit, int? page = 1)
         {
-            Product product =  await dbContext.products.FirstOrDefaultAsync(item => item.name == name);
-            product.ImageSrc = string.Format("{0}://{1}{2}/images/{3}", httpContextAccessor.HttpContext.Request.Scheme, httpContextAccessor.HttpContext.Request.Host, httpContextAccessor.HttpContext.Request.PathBase, product.image1);
-            return product;
-        }
-        public async Task UpdateProduct(string id, ProductDTO productDTO)
-        {
-            var product_Update = await dbContext.products.FindAsync(id);
-            if(product_Update != null)
+            var products = await productRepository.GetAllProduct(search, from, to, sortBy, limit, page);
+            foreach (var p in products)
             {
-                product_Update.name = productDTO.name;
-                product_Update.image1 = productDTO.image1;
-                product_Update.image2 = productDTO.image2;
-                product_Update.image3 = productDTO.image3;
-                product_Update.description = productDTO.description;
-                product_Update.nsn = productDTO.nsn;
-                product_Update.category = await categoryRepository.GetCategoryById(productDTO.categoryId).ConfigureAwait(false);
-                await dbContext.SaveChangesAsync();
+                p.ImageSrc = GetImageUrl(p.image1);
             }
-            else
+            return new ResDTO<IEnumerable<Product>>
             {
-                throw new Exception("khong tim thay san pham can cap nhat");
-            }
-
-        }
-        public async Task<string> saveImages(IFormFile imageFile)
-        {
-            string imageName = new string(Path.GetFileNameWithoutExtension(imageFile.FileName).Take(10).ToArray());
-            imageName = imageName + Path.GetExtension(imageFile.FileName);
-            var imagePath = Path.Combine(environment.ContentRootPath,"images", imageName);
-            using (var fileStream = new FileStream(imagePath, FileMode.Create))
-            {
-                await imageFile.CopyToAsync(fileStream);
-            }
-            return imageName;
-        }
-        public async Task DeleteImage(string imageName)
-        {
-            var imagePath = Path.Combine(environment.ContentRootPath, "Images", imageName);
-            if (File.Exists(imagePath))
-                File.Delete(imagePath);
-        }
-        public async Task<Product> MapDTO(ProductDTO productDTO)
-        {
-            return new Product
-            {
-                productID = productDTO.productID,
-                name = productDTO.name,
-                image1 = productDTO.image1,
-                image2 = productDTO.image2,
-                image3 = productDTO.image3,
-                description = productDTO.description,
-                nsn = productDTO.nsn,
-                category = await categoryRepository.GetCategoryById(productDTO.categoryId)
+                Code = 200,
+                Message = "Lấy danh sách sản phẩm thành công",
+                Data = products,
+                PageNumber = page,
+                PageSize = limit,
+                TotalItems = products.Count()
             };
         }
+
+        public async Task<ResDTO<IEnumerable<Product>>> GetProductByCategory(string categoryCode, string? search, decimal? from, decimal? to, string? sortBy, int? limit, int? page = 1)
+        {
+            var products = await productRepository.GetProductByCategory(categoryCode, search, from, to, sortBy, limit, page);
+            foreach (var p in products)
+            {
+                p.ImageSrc = GetImageUrl(p.image1);
+            }
+            return new ResDTO<IEnumerable<Product>>
+            {
+                Code = 200,
+                Message = "Lấy danh sách sản phẩm theo danh mục thành công",
+                Data = products,
+                PageNumber = page,
+                PageSize = limit,
+                TotalItems = products.Count()
+            };
+        }
+
+        public async Task<ResDTO<string>> UpdateProduct(string id, ProductDTO productDTO)
+        {
+            var product = await productRepository.GetProductById(id);
+            if (product == null)
+                return new ResDTO<string> { Code = 404, Message = "Không tìm thấy sản phẩm cần cập nhật", Data = null };
+
+            var category = await categoryRepository.GetCategoryById(productDTO.categoryId);
+            if (category == null)
+                return new ResDTO<string> { Code = 404, Message = "Không tìm thấy danh mục", Data = null };
+
+            product.name = productDTO.name;
+            product.image1 = productDTO.image1;
+            product.image2 = productDTO.image2;
+            product.image3 = productDTO.image3;
+            product.description = productDTO.description;
+            product.nsn = productDTO.nsn;
+            product.Slug = GenerateSlug(productDTO.name);
+            product.category = category;
+
+            await productRepository.UpdateProduct(product);
+            return new ResDTO<string> { Code = 200, Message = "Cập nhật sản phẩm thành công", Data = product.productID };
+        }
+
+        public async Task<ResDTO<ImageResponeDTO>> SaveImages(IFormFile imageFile)
+        {
+            try
+            {
+                string imageName = await productRepository.SaveImages(imageFile);
+                ImageResponeDTO res = new ImageResponeDTO();
+                res.fileName = imageName;
+                return new ResDTO<ImageResponeDTO> { Code = 200, Message = "Tải ảnh thành công", Data = res };
+            }
+            catch (Exception ex)
+            {
+                return new ResDTO<ImageResponeDTO> { Code = 500, Message = "Lỗi khi lưu ảnh: " + ex.Message, Data = null };
+            }
+        }
+
+        // =================== Helper ===================
+        private string GetImageUrl(string fileName)
+        {
+            var request = httpContextAccessor.HttpContext.Request;
+            return $"{request.Scheme}://{request.Host}{request.PathBase}/images/{fileName}";
+        }
+
+        public string GenerateSlug(string name)
+        {
+            string slug = name.ToLowerInvariant()
+                .Replace(" ", "-")
+                .Replace("đ", "d")
+                .Normalize(System.Text.NormalizationForm.FormD);
+
+            // Loại bỏ ký tự không phải chữ cái
+            slug = new string(slug.Where(c => char.IsLetterOrDigit(c) || c == '-').ToArray());
+
+            return slug;
+        }
+        public async Task<ResDTO<Product>> GetProductBySlug(string slug)
+        {
+            var product = await productRepository.GetProductBySlug(slug);
+            if (product == null)
+            {
+                return new ResDTO<Product>
+                {
+                    Code = 404,
+                    Message = "Không tìm thấy sản phẩm theo đường dẫn (slug)",
+                    Data = null
+                };
+            }
+
+            return new ResDTO<Product>
+            {
+                Code = 200,
+                Message = "Lấy sản phẩm theo slug thành công",
+                Data = product
+            };
+        }
+
     }
 }

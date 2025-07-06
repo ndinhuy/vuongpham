@@ -9,6 +9,9 @@ using Gimji.Repository.Interface;
 using Gimji.DTO.Respone.User;
 using Microsoft.AspNetCore.Identity;
 using Gimji.DTO.Request.Auth;
+using Gimji.Helper;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Gimji.Services.Implementations
 {
@@ -239,7 +242,7 @@ namespace Gimji.Services.Implementations
                 Message = "Xóa người dùng thành công",
                 Data = id
             };
-        }
+        }                                                                                                                        
 
         // 📌 Đăng nhập với email và password
         public async Task<ResDTO<object>> Login(string email, string password)
@@ -377,6 +380,37 @@ namespace Gimji.Services.Implementations
                 Data = null
             };
         }
+
+        public async Task<ResDTO<string>> LogoutAsync(string userId)
+        {
+            // Tìm tất cả token thuộc user này
+            var tokens = await dbContext.UserRefreshTokens
+                .Where(rt => rt.UserId == userId)
+                .ToListAsync();
+
+            if (!tokens.Any())
+            {
+                return new ResDTO<string>
+                {
+                    Code = 404,
+                    Message = "Không tìm thấy refresh token của người dùng",
+                    Data = null
+                };
+            }
+
+            dbContext.UserRefreshTokens.RemoveRange(tokens);
+            await dbContext.SaveChangesAsync();
+
+            return new ResDTO<string>
+            {
+                Code = 200,
+                Message = "Đăng xuất thành công",
+                Data = null
+            };
+        }
+
+
+
 
 
     }

@@ -18,6 +18,9 @@ namespace Gimji.Models
         public string description { get; set; }
         public string nsn { get; set; } /*số lượng tồn kho */
 
+        // tao seo 
+        public string Slug { get; set; }  
+
         public CategoryCode category { get; set; }
 
         [NotMapped]

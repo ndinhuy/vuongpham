@@ -57,14 +57,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 // dependency injection
-builder.Services.AddScoped<CategoryRepository, CategoryService>();
 
-builder.Services.AddScoped<ProductRepository , ProductService>();
+// repository + interface
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+// service + interface
+
+builder.Services.AddScoped<IProductService, ProductService>();
+
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+
+builder.Services.AddScoped<IOrderService, OrderService>();
+
 builder.Services.AddScoped<IRoleRepository , RoleService>();
 builder.Services.AddScoped<IUserRepository, UserServices>();
 builder.Services.AddScoped<ImageRepository , ImageService>();
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-builder.Services.AddScoped<IOrderService, OrderService>();
+
+
 builder.Services.AddSingleton<JwtUtils>();
 builder.Services.AddSingleton<BcryptUtils>();
 

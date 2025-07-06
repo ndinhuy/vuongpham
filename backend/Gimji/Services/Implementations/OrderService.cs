@@ -6,14 +6,15 @@ using Gimji.Models;
 using Gimji.Repository;
 using Gimji.Services.Interface;
 using Gimji.Repository.Implementations;
+using Gimji.Repository.Interface;
 
 namespace Gimji.Services.Implementations
 {
     public class OrderService : IOrderService
     {
         private readonly IOrderRepository _orderRepository;
-        private readonly ProductRepository _productRepository;
-        public OrderService(IOrderRepository orderRepository, ProductRepository productRepository)
+        private readonly IProductRepository _productRepository;
+        public OrderService(IOrderRepository orderRepository, IProductRepository productRepository)
         {
             _orderRepository = orderRepository;
             _productRepository = productRepository;
@@ -51,6 +52,7 @@ namespace Gimji.Services.Implementations
             foreach (var item in orderDto.Items)
             {
                 var product = await _productRepository.GetProductById(item.ProductId);
+
                 if (product == null)
                 {
                     return new ResDTO<Order>

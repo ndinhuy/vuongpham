@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gimji.Migrations
 {
     [DbContext(typeof(MyPostgresDbContext))]
-    [Migration("20250704114328_initDB")]
+    [Migration("20250706113823_initDB")]
     partial class initDB
     {
         /// <inheritdoc />
@@ -69,7 +69,6 @@ namespace Gimji.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.Property<string>("Notes")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("PaymentMethod")
@@ -130,6 +129,10 @@ namespace Gimji.Migrations
                     b.Property<string>("productID")
                         .HasColumnType("text")
                         .HasColumnName("productID");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("categoryCodeValue")
                         .HasColumnType("text");

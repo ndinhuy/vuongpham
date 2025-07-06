@@ -66,7 +66,6 @@ namespace Gimji.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.Property<string>("Notes")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("PaymentMethod")
@@ -127,6 +126,10 @@ namespace Gimji.Migrations
                     b.Property<string>("productID")
                         .HasColumnType("text")
                         .HasColumnName("productID");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("categoryCodeValue")
                         .HasColumnType("text");

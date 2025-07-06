@@ -18,5 +18,8 @@ namespace Gimji.Repository.Interface
         Task<ResDTO<object>> RefreshTokenAsync(string refreshToken);
         Task<ResDTO<string>> ChangePassword(ChangePassworđTO changePassworđTO);
 
+        Task<ResDTO<string>> LogoutAsync(string userId);
+
+
     }
 }

@@ -44,7 +44,27 @@ namespace Gimji.Controllers
             var result = await _userRepository.ChangePassword(changePassworđ);
             return StatusCode(result.Code, result);
         }
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            var userId = TokenHelper.GetUserIdFromAccessToken(HttpContext);
 
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(new ResDTO<string>
+                {
+                    Code = 401,
+                    Message = "Không tìm thấy userId trong token",
+                    Data = null
+                });
+
+            var result = await _userRepository.LogoutAsync(userId);
+            // Xoá cookie chứa accessToken / refreshToken nếu có
+            Response.Cookies.Delete("access_token");
+            Response.Cookies.Delete("refresh_token");
+
+            return StatusCode(result.Code, result);
+        }
 
     }
 }

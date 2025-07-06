@@ -2,10 +2,9 @@
 using Gimji.DTO.Respone.Product;
 using Gimji.Models;
 using Gimji.Repository.Implementations;
+using Gimji.Services.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace Gimji.Controllers
 {
@@ -14,60 +13,84 @@ namespace Gimji.Controllers
     [AllowAnonymous]
     public class ProductController : ControllerBase
     {
-        private ProductRepository productRepository;
-        public ProductController(ProductRepository productRepository)
+        private readonly IProductService productService;
+
+        public ProductController(IProductService productService)
         {
-            this.productRepository = productRepository;
+            this.productService = productService;
         }
 
-        // GET: api/<ProductController>
-        [AllowAnonymous]
+        // GET: api/product?search=...&from=...&page=...
         [HttpGet]
-        public async Task<IActionResult> GetProductAll(string? search, decimal? from, decimal? to, string? sortBy, int? limit, int? page = 1)
+        public async Task<IActionResult> GetProductAll(
+            [FromQuery] string? search,
+            [FromQuery] decimal? from,
+            [FromQuery] decimal? to,
+            [FromQuery] string? sortBy,
+            [FromQuery] int? limit,
+            [FromQuery] int? page = 1)
         {
-            return Ok(await productRepository.GetAllProduct(search , from , to , sortBy ,limit ,  page));
+            var result = await productService.GetAllProduct(search, from, to, sortBy, limit, page);
+            return StatusCode(result.Code, result);
         }
 
-        // GET api/<ProductController>/5
-        [AllowAnonymous]
+        // GET: api/product/category/micay?search=...&page=...
+        [HttpGet("category/{categoryCode}")]
+        public async Task<IActionResult> GetProductByCategory(
+            string categoryCode,
+            [FromQuery] string? search,
+            [FromQuery] decimal? from,
+            [FromQuery] decimal? to,
+            [FromQuery] string? sortBy,
+            [FromQuery] int? limit,
+            [FromQuery] int? page = 1)
+        {
+            var result = await productService.GetProductByCategory(categoryCode, search, from, to, sortBy, limit, page);
+            return StatusCode(result.Code, result);
+        }
+
+        // GET: api/product/abc123
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProductById(string id)
         {
-            return Ok(await productRepository.GetProductById(id));
+            var result = await productService.GetProductById(id);
+            return StatusCode(result.Code, result);
         }
-        // GET api/<ProductController>/5
-        [AllowAnonymous]
-        [HttpGet("category/{categoryCode}")]
-        public async Task<IActionResult> GetProductByCategory(string categoryCode , string? search, decimal? from, decimal? to, string? sortBy, int? limit, int? page = 1)
-        {
-            return Ok(await productRepository.GetProductByCategory(categoryCode , search, from, to, sortBy, limit, page));
-        }
-        // POST api/<ProductController>
+
+        // POST: api/product
         [HttpPost]
         [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> CreateProduct([FromBody] addProduct addProduct)
         {
-            await productRepository.AddProduct(addProduct);
-            return Ok();
+            var result = await productService.AddProduct(addProduct);
+            return StatusCode(result.Code, result);
         }
 
-        // PUT api/<ProductController>
-        //[Authorize(Policy = "authenticated")]
-        [Authorize(Roles = "ADMIN")]
+        // PUT: api/product/abc123
         [HttpPut("{id}")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> UpdateProduct(string id, [FromBody] ProductDTO productDTO)
         {
-            await productRepository.UpdateProduct(id, productDTO);
-            return Ok();
+            var result = await productService.UpdateProduct(id, productDTO);
+            return StatusCode(result.Code, result);
         }
 
-        // DELETE api/<ProductController>/5
+        // DELETE: api/product/abc123
         [HttpDelete("{id}")]
         [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> DeleteProduct(string id)
         {
-            await productRepository.DeleteProduct(id);
-            return Ok();
+            var result = await productService.DeleteProduct(id);
+            return StatusCode(result.Code, result);
         }
+
+        [HttpGet("slug/{slug}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetProductBySlug(string slug)
+        {
+            var result = await productService.GetProductBySlug(slug);
+            return StatusCode(result.Code, result);
+        }
+
     }
 }

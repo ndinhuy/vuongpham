@@ -32,7 +32,7 @@ namespace Gimji.Migrations
                     id = table.Column<string>(type: "text", nullable: false),
                     TotalPrice = table.Column<decimal>(type: "numeric", nullable: false),
                     ShippingAddress = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    Notes = table.Column<string>(type: "text", nullable: false),
+                    Notes = table.Column<string>(type: "text", nullable: true),
                     UserId = table.Column<string>(type: "text", nullable: true),
                     PaymentMethod = table.Column<string>(type: "text", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
@@ -87,6 +87,7 @@ namespace Gimji.Migrations
                     price = table.Column<decimal>(type: "numeric", nullable: false),
                     description = table.Column<string>(type: "text", nullable: false),
                     nsn = table.Column<string>(type: "text", nullable: false),
+                    Slug = table.Column<string>(type: "text", nullable: false),
                     categoryCodeValue = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>

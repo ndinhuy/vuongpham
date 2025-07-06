@@ -2,6 +2,7 @@
 using Gimji.DTO.Respone.Image;
 using Gimji.Models;
 using Gimji.Repository.Implementations;
+using Gimji.Services.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.IO;
@@ -16,11 +17,11 @@ namespace Gimji.Controllers
     public class ImageController : ControllerBase
     {
         private IWebHostEnvironment environment;
-        private ProductRepository productRepository;
-        public ImageController(IWebHostEnvironment env , ProductRepository productRepository) 
+        private IProductService productService;
+        public ImageController(IWebHostEnvironment env , IProductService productService) 
         { 
             this.environment = env;
-            this.productRepository = productRepository;
+            this.productService = productService;
         }
         // GET api/<PictureController>/5
         [HttpGet("{fileName}")]
@@ -45,23 +46,22 @@ namespace Gimji.Controllers
         }
         // POST api/<ProductController>
         //[Authorize(Policy = "authenticated")]
+        // POST api/images
         [HttpPost]
-        public async Task<IActionResult> uploadImage([FromForm] Image image)
+        public async Task<IActionResult> UploadImage([FromForm] Image image)
         {
-            var status = new ResDTO<ImageResponeDTO>();
-            if (!ModelState.IsValid)
+            if (!ModelState.IsValid || image.ImageFile == null)
             {
-                status.Code = 200;
-                status.Message = "Please pass the valid data";
-                return Ok(status);
+                return BadRequest(new ResDTO<ImageResponeDTO>
+                {
+                    Code = 400,
+                    Message = "File ảnh không hợp lệ",
+                    Data = null
+                });
             }
-            var fileName = await productRepository.saveImages(image.ImageFile);
-            status.Code = 200;
-            status.Message = "Upload ảnh thành công";
-            status.Data = new ImageResponeDTO { fileName = fileName };
 
-            return Ok(status);
-
+            var result = await productService.SaveImages(image.ImageFile);
+            return StatusCode(result.Code, result.Data);
         }
 
         private string GetContentType(string fileName)
